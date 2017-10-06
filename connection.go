@@ -423,7 +423,8 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	} else {
 		pt = pt | packetFlagLongHeader
 	}
-    /* This is where I'll want to put in the spinbit stuff, put a "measurement struct" in the connection */
+
+	measurementField := c.measurement.hdrData.encode()
     
 	p := packet{
 		packetHeader{
@@ -431,7 +432,7 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 			connId,
 			pn,
 			version,
-            0,
+            measurementField,
 		},
 		nil,
 	}
