@@ -63,7 +63,6 @@ const (
 
 type ConnectionId uint64
 type version uint32
-type MeasurementField uint8
 
 // The PDU definition for the header.
 // These types are capitalized so that |codec| can use the,

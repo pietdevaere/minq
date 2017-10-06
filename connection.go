@@ -129,6 +129,7 @@ type Connection struct {
 	retransmitTime     uint32
 	congestion         CongestionController
 	lastSendQueuedTime time.Time
+	measurement        MeasurementData
 }
 
 // Create a new QUIC connection. Should only be used with role=RoleClient,
@@ -163,6 +164,7 @@ func NewConnection(trans Transport, role uint8, tls TlsConfig, handler Connectio
 		kDefaultInitialRtt,
 		nil,
 		time.Now(),
+        newMeasurementData(),
 	}
 
 	c.log = newConnectionLogger(&c)
@@ -201,6 +203,7 @@ func NewConnection(trans Transport, role uint8, tls TlsConfig, handler Connectio
 	if newframe {
 		s.setState(kStreamStateOpen)
 	}
+
 	return &c
 }
 
@@ -420,6 +423,8 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	} else {
 		pt = pt | packetFlagLongHeader
 	}
+    /* This is where I'll want to put in the spinbit stuff, put a "measurement struct" in the connection */
+    
 	p := packet{
 		packetHeader{
 			pt,
@@ -1008,10 +1013,11 @@ func (c *Connection) input(p []byte) error {
 	}
 	// TODO(ekr@rtfm.com): Reject unprotected packets once we are established.
 
-	// We have now verified that this is a valid packet, so mark
-	// it received.
 	c.logPacket("Received", &hdr, packetNumber, payload)
-
+	
+	/* run incomming measurement tasks */
+    incommingMeasurementTasks(c, &hdr)
+	
 	naf := true
 	switch typ {
 	case packetTypeClientInitial:
