@@ -11,6 +11,7 @@ var kTestpacketHeader = packetHeader{
 	0x0123456789abcdef,
 	0xdeadbeef,
 	0xff000001,
+    0x00,
 }
 
 // Packet header tests.

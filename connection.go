@@ -367,6 +367,7 @@ func (c *Connection) sendSpecialClearPacket(pt uint8, connId ConnectionId, pn ui
 			connId,
 			pn,
 			version,
+            0,
 		},
 		payload,
 	}
@@ -425,6 +426,7 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 			connId,
 			pn,
 			version,
+            0,
 		},
 		nil,
 	}
@@ -553,6 +555,7 @@ func (c *Connection) sendFramesInPacket(pt uint8, tosend []frame) error {
 			connId,
 			pn,
 			c.version,
+            0,
 		},
 		nil,
 	}

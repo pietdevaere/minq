@@ -63,14 +63,17 @@ const (
 
 type ConnectionId uint64
 type version uint32
+type MeasurementField uint8
 
 // The PDU definition for the header.
 // These types are capitalized so that |codec| can use the,
 type packetHeader struct {
-	Type         byte
-	ConnectionID ConnectionId
-	PacketNumber uint64 // Never more than 32 bits on the wire.
-	Version      VersionNumber
+	Type          byte
+	ConnectionID  ConnectionId
+	PacketNumber  uint64 // Never more than 32 bits on the wire.
+	Version       VersionNumber
+	Measurement   MeasurementField
+	
 }
 
 func (p *packetHeader) String() string {
