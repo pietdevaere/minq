@@ -39,7 +39,7 @@ const (
 
 const (
 	kMinimumClientInitialLength  = 1200 // draft-ietf-quic-transport S 9.0
-	kLongHeaderLength            = 17
+	kLongHeaderLength            = 18
 	kInitialIntegrityCheckLength = 16   // Overhead.
 	kInitialMTU                  = 1252 // 1280 - UDP headers.
 )
