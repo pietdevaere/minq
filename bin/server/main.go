@@ -303,6 +303,11 @@ func main() {
 		log.Println("Couldn't listen on UDP: ", err)
 		return
 	}
+	err = usock.SetReadBuffer(2147483647)
+	if err != nil {
+		fmt.Println("Could not set larger UDP buffer")
+		return
+	}
 
 	var handler minq.ServerHandler
 	if doHttp {
