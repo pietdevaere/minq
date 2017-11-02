@@ -164,7 +164,7 @@ func NewConnection(trans Transport, role uint8, tls TlsConfig, handler Connectio
 		kDefaultInitialRtt,
 		nil,
 		time.Now(),
-        newMeasurementData(),
+		newMeasurementData(role),
 	}
 
 	c.log = newConnectionLogger(&c)
@@ -425,7 +425,7 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	}
 
 	measurementField := c.measurement.hdrData.encode()
-    
+
 	p := packet{
 		packetHeader{
 			pt,
@@ -1017,7 +1017,7 @@ func (c *Connection) input(p []byte) error {
 	c.logPacket("Received", &hdr, packetNumber, payload)
 	
 	/* run incomming measurement tasks */
-    incommingMeasurementTasks(c, &hdr)
+	c.measurement.incommingMeasurementTasks(&hdr)
 	
 	naf := true
 	switch typ {
