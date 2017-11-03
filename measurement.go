@@ -5,6 +5,11 @@ https://quicwg.github.io/. Minq partly implements draft-04.
 */
 package minq
 
+
+//import (
+//	"fmt"
+//)
+
 const (
 	bitLatencySpin = 1 << 7
 )
@@ -63,13 +68,14 @@ func newMeasurementData(role uint8) MeasurementData {
 }
 
 /* Perform measurement tasks to be executed on packet reception */
-func (m MeasurementData) incommingMeasurementTasks(hdr *packetHeader){
+func (m *MeasurementData) incommingMeasurementTasks(hdr *packetHeader){
 	m.setOutgoingLatencySpin(hdr)
+
 }
 
 /* Look at the incomming LatencySpin, and determine what
  * the outgoing one should be */
-func (m MeasurementData) setOutgoingLatencySpin(hdr *packetHeader){
+func (m *MeasurementData) setOutgoingLatencySpin(hdr *packetHeader){
 
 	/* Check if packet was received out of order. If so, ignore it */
 	if hdr.PacketNumber <= m.maxPacketNumber {
@@ -86,7 +92,7 @@ func (m MeasurementData) setOutgoingLatencySpin(hdr *packetHeader){
 	if m.role == RoleServer{
 		m.hdrData.latencySpin = receivedMeasurement.latencySpin
 	} else {
-	m.hdrData.latencySpin = !receivedMeasurement.latencySpin
+		m.hdrData.latencySpin = !receivedMeasurement.latencySpin
 	}
 
 }
