@@ -30,7 +30,7 @@ type MeasurementData struct {
 
 /* Encode the measurement header for transmission */
 func (m *MeasurementHeaderData) encode() MeasurementField {
-	var field MeasurementField = 0x00
+	var field MeasurementField = 0x01
 
 	if m.latencySpin {
 		field ^= bitLatencySpin
