@@ -158,8 +158,9 @@ func(cc *CongestionControllerIetf) updateRtt(latestRtt time.Duration){
 }
 
 func(cc *CongestionControllerIetf) onPacketAcked(pn uint64){
-	rtt := int64(time.Since(cc.sentPackets[pn].txTime)/time.Millisecond) // [ms]
-	cc.conn.log(logTypeStatistic, "RTT for pn %d is %d ms\n", pn, rtt)
+	rtt := float64(time.Since(cc.sentPackets[pn].txTime))/float64(time.Millisecond) // [ms]
+	timestamp := float64(time.Now().UnixNano()) / 1e9
+	logf(logTypeStatistic, "ACK_DELAY pn: %d time: %f rtt: %f", pn, timestamp, rtt)
 	cc.onPacketAckedCC(pn)
 	//TODO(ekr@rtfm.com) some RTO stuff here
 	delete(cc.sentPackets, pn)
