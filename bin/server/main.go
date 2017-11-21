@@ -95,11 +95,11 @@ func (h *feedthroughConnHandler) StreamReadable(s *minq.Stream) {
 
 		if echo {
 			// Flip the case so we can distinguish echo
-			for i, _ := range b {
-				if b[i] > 0x40 {
-					b[i] ^= 0x20
-				}
-			}
+			//for i, _ := range b {
+			//	if b[i] > 0x40 {
+			//		b[i] ^= 0x20
+			//	}
+			//}
 			s.Write(b)
 		}
 	}
