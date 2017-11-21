@@ -194,11 +194,15 @@ func(cc *CongestionControllerIetf) detectLostPackets(){
 
 func (cc *CongestionControllerIetf) onPacketSentCC(bytes_sent int){
 	cc.bytesInFlight += bytes_sent
+	logf(logTypeStatistic, "BYTES_IN_FLIGHT time: %f bytes: %d",
+		 float64(time.Now().UnixNano()) / 1e9, cc.bytesInFlight)
 	cc.conn.log(logTypeCongestion, "%d bytes added to bytesInFlight", bytes_sent)
 }
 
 func (cc *CongestionControllerIetf) onPacketAckedCC(pn uint64){
 	cc.bytesInFlight -= cc.sentPackets[pn].bytes
+	logf(logTypeStatistic, "BYTES_IN_FLIGHT time: %f bytes: %d",
+		 float64(time.Now().UnixNano()) / 1e9,  cc.bytesInFlight)
 	cc.conn.log(logTypeCongestion, "%d bytes from packet %d removed from bytesInFlight", cc.sentPackets[pn].bytes, pn)
 
 	if pn < cc.endOfRecovery {
@@ -217,6 +221,8 @@ func (cc *CongestionControllerIetf) onPacketAckedCC(pn uint64){
 		cc.conn.log(logTypeCongestion, "PDV Congestion Avoidance: increasing window size to %d",
 			cc.congestionWindow)
 	}
+	logf(logTypeStatistic, "CONGESTION_WINDOW time: %f bytes: %d",
+		 float64(time.Now().UnixNano()) / 1e9, cc.congestionWindow)
 }
 
 func (cc *CongestionControllerIetf) onPacketsLost(packets []packetEntry){
@@ -245,6 +251,8 @@ func (cc *CongestionControllerIetf) onPacketsLost(packets []packetEntry){
 		if kMinimumWindow > cc.congestionWindow {
 			cc.congestionWindow = kMinimumWindow
 		}
+		logf(logTypeStatistic, "CONGESTION_WINDOW time: %f bytes: %d",
+			 float64(time.Now().UnixNano()) / 1e9, cc.congestionWindow)
 		cc.sstresh = cc.congestionWindow
 		cc.conn.log(logTypeCongestion, "PDV Recovery started. Window size: %d, sstresh: %d, endOfRecovery %d",
 					cc.congestionWindow, cc.sstresh, cc.endOfRecovery)
