@@ -303,9 +303,9 @@ func main() {
 		log.Println("Couldn't listen on UDP: ", err)
 		return
 	}
-	err = usock.SetReadBuffer(1000000) //TODO(piet@devae.re) do this properly
+	err = usock.SetReadBuffer(40000) //TODO(piet@devae.re) do this properly
 	if err != nil {
-		fmt.Println("Could not set larger UDP buffer: ", err)
+		log.Println("Could not set larger UDP buffer: ", err)
 		return
 	}
 

@@ -32,7 +32,7 @@ type tpDef struct {
 }
 
 // TODO(ekr@rtfm.com): Hack until we generate MAX_STREAM_DATA
-var kInitialMaxStreamData = uint32(8192)
+var kInitialMaxStreamData = uint32(819200)  //HACK(piet@devae.re)
 var (
 	kTransportParameterDefaults = []tpDef{
 		{kTpIdInitialMaxStreamsData, kInitialMaxStreamData, 4},
