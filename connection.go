@@ -50,7 +50,7 @@ type VersionNumber uint32
 
 const (
 	kQuicDraftVersion   = 7
-	kQuicVersion        = VersionNumber(0xff000000 | kQuicDraftVersion)
+	kQuicVersion        = VersionNumber(0xf0f0f0f0)// VersionNumber(0xff000000 | kQuicDraftVersion)
 	kQuicGreaseVersion1 = VersionNumber(0x1a1a1a1a)
 	kQuicGreaseVersion2 = VersionNumber(0x2a2a2a2a)
 )
