@@ -453,7 +453,6 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	var packet []byte
 	/* hack to not have encryption pietdv */
 	if DUMMY_NO_ENCRYPT {
-		log.Printf("WARNING WARNING WARNING: overriding encryption & protection\n")
 		packet = append(hdr, payload...)
 	} else {
 		protected := aead.Seal(nil, c.packetNonce(p.PacketNumber), p.payload, hdr)
