@@ -11,14 +11,16 @@ package minq
 //)
 
 const (
-	bitLatencySpin = 1 << 7
+	latencySpinMask = ((1 << 7) | (1 << 6))
+	latencySpinShift = 6
+	latencySpinMod = 4
 )
 
 type MeasurementField uint8
 
 /* Measurement data that will pass over the wire */
 type MeasurementHeaderData struct{
-	latencySpin bool
+	latencySpin uint8
 }
 
 /* Store all (meta)data related to the measurement header field */
@@ -30,26 +32,21 @@ type MeasurementData struct {
 
 /* Encode the measurement header for transmission */
 func (m *MeasurementHeaderData) encode() MeasurementField {
-	var field MeasurementField = 0x01
+	var field MeasurementField = 0x00
 
-	if m.latencySpin {
-		field ^= bitLatencySpin
-	}
+	field |= MeasurementField(m.latencySpin << latencySpinShift)
 
 	return field
 }
 
 /* Decode a received measurement header */
-func (m *MeasurementField) decode() MeasurementHeaderData {
+func (m MeasurementField) decode() MeasurementHeaderData {
 	var measurementHeaderData MeasurementHeaderData
 
-	var latencSpin bool
-	if (*m & bitLatencySpin) != 0 {
-		latencSpin = true
-    }
+	latencySpin := (uint8(m) & latencySpinMask) >> latencySpinShift
 
 	measurementHeaderData = MeasurementHeaderData{
-		latencSpin,
+		latencySpin,
     }
 
 	return measurementHeaderData
@@ -59,7 +56,7 @@ func (m *MeasurementField) decode() MeasurementHeaderData {
 func newMeasurementData(role uint8) MeasurementData {
 	return MeasurementData{
 		MeasurementHeaderData{
-			false,
+			0,
 		},
 		0,
 		role,
@@ -92,7 +89,7 @@ func (m *MeasurementData) setOutgoingLatencySpin(hdr *packetHeader){
 	if m.role == RoleServer{
 		m.hdrData.latencySpin = receivedMeasurement.latencySpin
 	} else {
-		m.hdrData.latencySpin = !receivedMeasurement.latencySpin
+		m.hdrData.latencySpin = (receivedMeasurement.latencySpin + 1) % latencySpinMod
 	}
 
 }
