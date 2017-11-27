@@ -417,6 +417,9 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	aead := c.determineAead(pt)
 	left -= aead.Overhead()
 
+	c.measurement.outgoingMeasurementTasks()
+	measurementField := c.measurement.hdrData.encode()
+
 	// Horrible hack. Map phase0 -> short header.
 	// TODO(ekr@rtfm.com): Fix this way above here.
 	if pt == packetType1RTTProtectedPhase0 {
@@ -424,8 +427,6 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	} else {
 		pt = pt | packetFlagLongHeader
 	}
-
-	measurementField := c.measurement.hdrData.encode()
 
 	p := packet{
 		packetHeader{
