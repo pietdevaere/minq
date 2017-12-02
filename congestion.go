@@ -171,6 +171,11 @@ func(cc *CongestionControllerIetf) updateRtt(latestRtt time.Duration){
 		cc.smoothedRtt = time.Duration(int64(cc.smoothedRtt) * 7/8 + int64(latestRtt) * 1/8)
 	}
 	cc.conn.log(logTypeCongestion, "New RTT estimate: %v, variance: %v", cc.smoothedRtt, cc.rttVar)
+
+	variance := float64(cc.rttVar) / float64(time.Millisecond)
+	rtt := float64(cc.smoothedRtt) / float64(time.Millisecond)
+	logf(logTypeStatistic, "RTT: time: %f variance: %f rtt: %f",
+		 float64(time.Now().UnixNano()) / 1e9, variance, rtt)
 }
 
 func(cc *CongestionControllerIetf) updateRttTcp(latestRtt time.Duration){
@@ -186,13 +191,18 @@ func(cc *CongestionControllerIetf) updateRttTcp(latestRtt time.Duration){
 		cc.smoothedRttTcp = time.Duration(int64(cc.smoothedRttTcp) * 7/8 + int64(latestRtt) * 1/8)
 	}
 	cc.conn.log(logTypeCongestion, "New RTT(TCP) estimate: %v, variance: %v", cc.smoothedRttTcp, cc.rttVarTcp)
+
+	variance := float64(cc.rttVarTcp) / float64(time.Millisecond)
+	rtt := float64(cc.smoothedRttTcp) / float64(time.Millisecond)
+	logf(logTypeStatistic, "RTT_TCP: time: %f variance: %f rtt: %f",
+		 float64(time.Now().UnixNano()) / 1e9, variance, rtt)
 }
 
 
 func(cc *CongestionControllerIetf) onPacketAcked(pn uint64){
 	rtt := float64(time.Since(cc.sentPackets[pn].txTime))/float64(time.Millisecond) // [ms]
-	timestamp := float64(time.Now().UnixNano()) / 1e9
-	logf(logTypeStatistic, "ACK_DELAY pn: %d time: %f rtt: %f", pn, timestamp, rtt)
+	logf(logTypeStatistic, "ACK_DELAY: pn: %d time: %f rtt: %f",
+		 pn, float64(time.Now().UnixNano()) / 1e9, rtt)
 	cc.onPacketAckedCC(pn)
 	//TODO(ekr@rtfm.com) some RTO stuff here
 	delete(cc.sentPackets, pn)
