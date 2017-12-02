@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"github.com/bifurcation/mint"
 	"time"
-	"log"
 )
 
 
