@@ -1816,7 +1816,8 @@ func (c *Connection) handleError(e error) error {
 	}
 
 	if !isFatalError(e) {
-		return e
+		logf(logTypeConnection, "%v: Non fatal error: %v", c.label(), e.Error())
+		return nil
 	}
 
 	// Connection has failed.
