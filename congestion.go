@@ -70,6 +70,8 @@ type CongestionControllerIetf struct {
 	congestionWindow       int
 	endOfRecovery          uint64
 	sstresh                int
+	bytesRxInRecovery      int
+	bytesTxInRecovery      int
 
 	// Loss detection related
 	lossDetectionAlarm     int //TODO(ekr@rtfm.com) set this to the right type
@@ -235,6 +237,13 @@ func(cc *CongestionControllerIetf) detectLostPackets(){
 }
 
 func (cc *CongestionControllerIetf) onPacketSentCC(bytes_sent int){
+
+	// if we are in recovery
+	if cc.largestAckedPacket < cc.endOfRecovery {
+		cc.bytesTxInRecovery += bytes_sent
+		cc.conn.log(logTypeCongestion, "%d bytes transmitted while in recovery. Totaling: %d", bytes_sent,  cc.bytesTxInRecovery)
+	}
+
 	cc.bytesInFlight += bytes_sent
 	logf(logTypeStatistic, "BYTES_IN_FLIGHT time: %f bytes: %d",
 		 float64(time.Now().UnixNano()) / 1e9, cc.bytesInFlight)
@@ -247,8 +256,10 @@ func (cc *CongestionControllerIetf) onPacketAckedCC(pn uint64){
 		 float64(time.Now().UnixNano()) / 1e9,  cc.bytesInFlight)
 	cc.conn.log(logTypeCongestion, "%d bytes from packet %d removed from bytesInFlight", cc.sentPackets[pn].bytes, pn)
 
+	// if we are in recovery mode
 	if pn < cc.endOfRecovery {
-		// Do not increase window size during recovery
+		cc.bytesRxInRecovery += cc.sentPackets[pn].bytes
+		cc.conn.log(logTypeCongestion, "%d bytes recieved while in recovery. Totaling: %d", cc.sentPackets[pn].bytes,  cc.bytesRxInRecovery)
 		return
 	}
 	if cc.congestionWindow < cc.sstresh {
@@ -289,6 +300,8 @@ func (cc *CongestionControllerIetf) onPacketsLost(packets []packetEntry){
 	// end of the previous recovery epoch
 	if cc.endOfRecovery < largestLostPn {
 		cc.endOfRecovery = cc.largestSendPacket
+		cc.bytesRxInRecovery = 0
+		cc.bytesTxInRecovery = 0
 		cc.congestionWindow = int(float32(cc.congestionWindow) * kLossReductionFactor)
 		if kMinimumWindow > cc.congestionWindow {
 			cc.congestionWindow = kMinimumWindow
@@ -302,8 +315,24 @@ func (cc *CongestionControllerIetf) onPacketsLost(packets []packetEntry){
 }
 
 func (cc *CongestionControllerIetf) bytesAllowedToSend() int {
-	cc.conn.log(logTypeCongestion, "Remaining congestion window size: %d", cc.congestionWindow - cc.bytesInFlight)
-	return cc.congestionWindow - cc.bytesInFlight
+	// if we are in recovery mode
+	if cc.largestAckedPacket < cc.endOfRecovery {
+		fastRecoveryAllowance := ( cc.bytesRxInRecovery / 2 ) - cc.bytesTxInRecovery
+		cwindAllowance := cc.congestionWindow - cc.bytesInFlight
+
+		cc.conn.log(logTypeCongestion, "Bytes allowed To Send by fast ecovery: %d / 2 - %d = %d", cc.bytesRxInRecovery, cc.bytesTxInRecovery, fastRecoveryAllowance)
+		cc.conn.log(logTypeCongestion, "Bytes allowed To Send by cwind: %d", cwindAllowance)
+
+		if fastRecoveryAllowance > cwindAllowance {
+			return fastRecoveryAllowance
+		} else {
+			return cwindAllowance
+		}
+
+	} else {
+		//cc.conn.log(logTypeCongestion, "Remaining congestion window size: %d", cc.congestionWindow - cc.bytesInFlight)
+		return cc.congestionWindow - cc.bytesInFlight
+	}
 }
 
 func newCongestionControllerIetf(conn *Connection) *CongestionControllerIetf{
@@ -312,6 +341,8 @@ func newCongestionControllerIetf(conn *Connection) *CongestionControllerIetf{
 		kInitalWindow,                 // congestionWindow
 		0,                             // endOfRecovery
 		int(^uint(0) >> 1),            // sstresh
+		0,                             // bytesRxInRecovery
+		0,                             // bytesTxInRecovery
 		0,                             // lossDetectionAlarm
 		0,                             // handshakeCount
 		0,                             // tlpCount
