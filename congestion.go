@@ -133,7 +133,7 @@ func(cc *CongestionControllerIetf) onAckReceived(acks ackRanges, ackDelay time.D
 		cc.conn.log(logTypeCongestion, "latestRtt: %v, ackDelay: %v", latestRtt, ackDelay)
 		cc.updateRttTcp(latestRtt)
 
-		if (latestRtt > ackDelay){
+		if (latestRtt > ackDelay && ackDelay > 0){
 			latestRtt -= ackDelay
 		}
 		cc.updateRtt(latestRtt)
