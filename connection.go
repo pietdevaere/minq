@@ -416,7 +416,7 @@ func (c *Connection) sendPacketRaw(pt uint8, connId ConnectionId, pn uint64, ver
 	aead := c.determineAead(pt)
 	left -= aead.Overhead()
 
-	c.measurement.outgoingMeasurementTasks()
+	c.measurement.outgoingMeasurementTasks(c)
 	measurementField := c.measurement.hdrData.encode()
 
 	// Horrible hack. Map phase0 -> short header.

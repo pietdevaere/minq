@@ -17,6 +17,8 @@ const (
 	latencySpinMod = 4
 	latencyValidShift = 5
 	latencyValidMask = (1 << latencyValidShift)
+	blockingShift = 4
+	blockingMask = (1 << blockingShift)
 )
 
 const (
@@ -29,6 +31,7 @@ type MeasurementField uint8
 type MeasurementHeaderData struct{
 	latencySpin     uint8
 	latencyValid    bool
+	blocking        bool
 }
 
 /* Store all (meta)data related to the measurement header field */
@@ -51,6 +54,10 @@ func (m *MeasurementHeaderData) encode() MeasurementField {
 		field |= MeasurementField(1 << latencyValidShift)
 	}
 
+	if m.blocking {
+		field |= MeasurementField(1 << blockingShift)
+	}
+
 	return field
 }
 
@@ -60,10 +67,12 @@ func (m MeasurementField) decode() MeasurementHeaderData {
 
 	latencySpin := (uint8(m) & latencySpinMask) >> latencySpinShift
 	latencyValid := (uint8(m) & latencyValidMask) == latencyValidMask
+	blocking := (uint8(m) & blockingMask) ==  blockingMask
 
 	measurementHeaderData = MeasurementHeaderData{
 		latencySpin,
 		latencyValid,
+		blocking,
     }
 
 	return measurementHeaderData
@@ -75,6 +84,7 @@ func newMeasurementData(role uint8) MeasurementData {
 		MeasurementHeaderData{
 			0,
 			true, //TODO(piet@devae.re): or should this be false?
+			false,
 		},
 		0,                  // maxPacketNumber
 		role,               // role
@@ -89,7 +99,7 @@ func (m *MeasurementData) incommingMeasurementTasks(hdr *packetHeader){
 	m.setOutgoingLatencySpin(hdr)
 }
 
-func (m *MeasurementData) outgoingMeasurementTasks() {
+func (m *MeasurementData) outgoingMeasurementTasks(c *Connection) {
 	/* We are generating an edge on the outgoing spin signal
 	 * so we have to see if it can be considered "valid" */
 	if m.generatingEdge {
@@ -101,6 +111,24 @@ func (m *MeasurementData) outgoingMeasurementTasks() {
 		}
 		m.generatingEdge = false
 	}
+
+	/* We check if the outoing queues have frames needing transmit or not */
+	blocking := true
+	queues := [...][]frame{c.outputClearQ, c.outputProtectedQ}
+	for _, queue := range queues {
+		if blocking == false {
+			break
+		}
+
+		for _, frame := range queue {
+			if frame.needsTransmit {
+				blocking = false
+				break
+			}
+		}
+	}
+
+	m.hdrData.blocking = blocking
 }
 
 /* Look at the incomming LatencySpin, and determine what
