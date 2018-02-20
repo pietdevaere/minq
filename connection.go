@@ -170,6 +170,7 @@ func NewConnection(trans Transport, role uint8, tls TlsConfig, handler Connectio
 	c.log = newConnectionLogger(&c)
 
 	c.congestion = newCongestionControllerIetf(&c)
+	//c.congestion = newCongestionControllerFixedWindow(&c, 20*kInitialMTU)
 	//c.congestion = &CongestionControllerDummy{}
 	c.congestion.setLostPacketHandler(c.handleLostPacket)
 
@@ -1644,7 +1645,8 @@ func (c *Connection) CheckTimer() (int, error) {
 		return 0, ErrorConnectionTimedOut
 	}
 
-	// Right now just re-send everything we might need to send.
+	// Check loss alarm
+	c.congestion.checkLossDetectionAlarm()
 
 	// Special case the client's first message.
 	if c.role == RoleClient && (c.state == StateInit ||
