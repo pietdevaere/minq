@@ -484,10 +484,15 @@ func(cc *CongestionControllerIetf) checkLossDetectionAlarm(){
 func(cc *CongestionControllerIetf) onLossDetectionAlarm(){
 	/* Derives from the draft-ietf-quic-recovery */
 
+	logf(logTypeStatistic, "LOSS_DETECTION_ALARM: time: %f",
+		 float64(time.Now().UnixNano()) / 1e9)
+
 	/* only doing a TLP probe at the moment,
 	   actual transmission will be done by connection.CheckTimer()
 	*/
 	cc.congestionWindow += kDefaultMss
+	logf(logTypeStatistic, "CONGESTION_WINDOW time: %f bytes: %d",
+		 float64(time.Now().UnixNano()) / 1e9, cc.congestionWindow)
 
 	cc.setLossDetectionAlarm()
 }
