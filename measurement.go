@@ -109,8 +109,12 @@ func (m *MeasurementData) outgoingMeasurementTasks(c *Connection) {
 		} else {
 			m.hdrData.latencyValid = true
 		}
-		m.generatingEdge = false
+	/* Set latencyvalid to true ONLY for the packet with
+	   the spin edge */
+	} else {
+		m.hdrData.latencyValid = false
 	}
+	m.generatingEdge = false
 
 	/* We check if the outoing queues have frames needing transmit or not */
 	blocking := true
