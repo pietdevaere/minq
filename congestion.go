@@ -67,35 +67,36 @@ func (cc *CongestionControllerDummy) checkLossDetectionAlarm(){
 
 type CongestionControllerFixedWindow struct {
 	// Congestion control related
-	bytesInFlight          int
-	congestionWindow       int
-	endOfRecovery          uint64
-	sstresh                int
-	bytesRxInRecovery      int
-	bytesTxInRecovery      int
+	bytesInFlight           int
+	congestionWindow        int
+	congestionWindowDefault int
+	endOfRecovery           uint64
+	sstresh                 int
+	bytesRxInRecovery       int
+	bytesTxInRecovery       int
 
 	// Loss detection related
-	lossDetectionAlarm     time.Time //TODO(ekr@rtfm.com) set this to the right type
-	handshakeCount         int
-	tlpCount               int
-	rtoCount               int
-	largestSendBeforeRto   uint64
-	timeOfLastSentPacket   time.Time
-	largestSendPacket      uint64
-	largestAckedPacket     uint64
-//	largestRtt             time.Duration
-	smoothedRtt            time.Duration
-	rttVar                 time.Duration
-	smoothedRttTcp         time.Duration
-	rttVarTcp              time.Duration
-	reorderingThreshold    int
-	timeReorderingFraction float32
-	lossTime               time.Time
-	sentPackets            map[uint64]packetEntry
+	lossDetectionAlarm      time.Time //TODO(ekr@rtfm.com) set this to the right type
+	handshakeCount          int
+	tlpCount                int
+	rtoCount                int
+	largestSendBeforeRto    uint64
+	timeOfLastSentPacket    time.Time
+	largestSendPacket       uint64
+	largestAckedPacket      uint64
+//	largestRtt              time.Duration
+	smoothedRtt             time.Duration
+	rttVar                  time.Duration
+	smoothedRttTcp          time.Duration
+	rttVarTcp               time.Duration
+	reorderingThreshold     int
+	timeReorderingFraction  float32
+	lossTime                time.Time
+	sentPackets             map[uint64]packetEntry
 
 	// others
-	lostPacketHandler      func(pn uint64)
-	conn                   *Connection
+	lostPacketHandler       func(pn uint64)
+	conn                    *Connection
 }
 
 func (cc *CongestionControllerFixedWindow) onPacketSent(pn uint64, isAckOnly bool, sentBytes int){
@@ -200,15 +201,49 @@ func(cc *CongestionControllerFixedWindow) onPacketAcked(pn uint64){
 		 pn, float64(time.Now().UnixNano()) / 1e9, rtt)
 	cc.onPacketAckedCC(pn)
 	//TODO(ekr@rtfm.com) some RTO stuff here
+	cc.congestionWindow = cc.congestionWindowDefault
 	delete(cc.sentPackets, pn)
 }
 
 func(cc *CongestionControllerFixedWindow) setLossDetectionAlarm(){
-	//TODO(ekr@rtfm.com)
+	//TODO(piet@devae.re) check if handshake done
+	//TODO(piet@devae.re) At the moment only does Tail Loss Probes, no RTO
+
+	/* If there is nothing that we can retransmit ... */
+	if (cc.bytesInFlight == 0){
+		cc.lossDetectionAlarm = time.Unix(0,0)
+		return
+	}
+
+	alarm_duration := time.Duration(1.5 * float32(cc.smoothedRtt));
+	if (alarm_duration < kMinTLPTimeout * time.Millisecond) {
+		alarm_duration = kMinTLPTimeout
+	}
+
+	cc.lossDetectionAlarm = cc.timeOfLastSentPacket.Add(alarm_duration);
+}
+
+func(cc *CongestionControllerFixedWindow) checkLossDetectionAlarm(){
+	if (cc.lossDetectionAlarm != time.Unix(0,0) &&
+			time.Now().After(cc.lossDetectionAlarm)){
+		cc.onLossDetectionAlarm()
+	}
 }
 
 func(cc *CongestionControllerFixedWindow) onLossDetectionAlarm(){
-	//TODO(ekr@rtfm.com)
+	/* Derives from the draft-ietf-quic-recovery */
+
+	logf(logTypeStatistic, "LOSS_DETECTION_ALARM: time: %f",
+		 float64(time.Now().UnixNano()) / 1e9)
+
+	/* only doing a TLP probe at the moment,
+	   actual transmission will be done by connection.CheckTimer()
+	*/
+	cc.congestionWindow += kDefaultMss
+	logf(logTypeStatistic, "CONGESTION_WINDOW time: %f bytes: %d",
+		 float64(time.Now().UnixNano()) / 1e9, cc.congestionWindow)
+
+	cc.setLossDetectionAlarm()
 }
 
 func(cc *CongestionControllerFixedWindow) detectLostPackets(){
@@ -270,17 +305,16 @@ func (cc *CongestionControllerFixedWindow) onPacketsLost(packets []packetEntry){
 }
 
 func (cc *CongestionControllerFixedWindow) bytesAllowedToSend() int {
+	logf(logTypeStatistic, "BYTES_ALLOWED_TO_SEMND time: %f bytes: %d",
+		 float64(time.Now().UnixNano()) / 1e9, cc.congestionWindow - cc.bytesInFlight)
 	return cc.congestionWindow - cc.bytesInFlight
-}
-
-func(cc *CongestionControllerFixedWindow) checkLossDetectionAlarm(){
-	//TODO(piet@devae.re)
 }
 
 func newCongestionControllerFixedWindow(conn *Connection, windowSize int) *CongestionControllerFixedWindow{
 	return &CongestionControllerFixedWindow{
 		0,                             // bytesInFlight
 		windowSize,                    // congestionWindow
+		windowSize,                    // congestionWindowDefault
 		0,                             // endOfRecovery
 		int(^uint(0) >> 1),            // sstresh
 		0,                             // bytesRxInRecovery
