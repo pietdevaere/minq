@@ -21,6 +21,10 @@ const (
 	blockingMask = (1 << blockingShift)
 	latencyStatusShift = 2
 	latencyStatusMask = ((1 << (latencyStatusShift + 1)) | (1 << latencyStatusShift))
+	lossShift = 1
+	lossMask = (1 << lossShift)
+	latencyValidEdgeShift = 0
+	latencyValidEdgeMask = (1 << latencyValidEdgeShift)
 )
 
 const (
@@ -42,6 +46,8 @@ type MeasurementHeaderData struct{
 	latencyValid        bool         /* Single bit valid, old sematics */
 	blocking            bool         /* blocking bit */
 	latencyStatus       uint8        /* Two bit valid signal */
+	loss                bool         /* Loss bit */
+	latencyValidEdge    bool         /* Single bit valid, only set on edge */
 }
 
 /* Store all (meta)data related to the measurement header field */
@@ -71,6 +77,14 @@ func (m *MeasurementHeaderData) encode() MeasurementField {
 
 	field |= MeasurementField(m.latencyStatus << latencyStatusShift)
 
+	if m.latencyValidEdge{
+		field |= MeasurementField(1 << latencyValidEdgeShift)
+	}
+
+	if m.loss{
+		field |= MeasurementField(1 << lossShift)
+	}
+
 	return field
 }
 
@@ -82,12 +96,16 @@ func (m MeasurementField) decode() MeasurementHeaderData {
 	latencyValid := (uint8(m) & latencyValidMask) == latencyValidMask
 	blocking := (uint8(m) & blockingMask) ==  blockingMask
 	latencyStatus := (uint8(m) & latencyStatusMask) >> latencyStatusShift
+	loss := (uint8(m) & lossMask) ==  lossMask
+	latencyValidEdge := (uint8(m) & latencyValidEdgeMask) == latencyValidEdgeMask
 
 	measurementHeaderData = MeasurementHeaderData{
 		latencySpin,
 		latencyValid,
 		blocking,
 		latencyStatus,
+		loss,
+		latencyValidEdge,
     }
 
 	return measurementHeaderData
@@ -101,6 +119,8 @@ func newMeasurementData(role uint8) MeasurementData {
 			true,                 // latencyValid
 			false,                // blocking
 			statusInvalid,        // latencyStatus
+			false,                // loss
+			true,                 // latencyValidEdge
 		},
 		0,                        // maxPacketNumber
 		role,                     // role
@@ -116,6 +136,11 @@ func (m *MeasurementData) incommingMeasurementTasks(hdr *packetHeader){
 	m.setOutgoingLatencySpin(hdr)
 }
 
+/* Perform measurement tasks to be executed when packet loss is experienced */
+func (m *MeasurementData) lossMeasurementTasks(){
+	m.hdrData.loss = true
+}
+
 func (m *MeasurementData) outgoingMeasurementTasks(c *Connection) {
 	/* We are generating an edge on the outgoing spin signal
 	 * so we have to see if it can be considered "valid" */
@@ -125,11 +150,13 @@ func (m *MeasurementData) outgoingMeasurementTasks(c *Connection) {
 		/* If we are to late for sending a valid edge */
 		if rxTxDelta > latencyRxTxDelayMax {
 			m.hdrData.latencyValid = false
+			m.hdrData.latencyValidEdge = false
 			m.hdrData.latencyStatus = statusInvalid
 
 		/* If we can send a valid edge */
 		} else {
 			m.hdrData.latencyValid = true
+			m.hdrData.latencyValidEdge = true
 			m.hdrData.latencyStatus = m.incommingLatencyStatus + 1
 			if m.hdrData.latencyStatus > 3 {
 				m.hdrData.latencyStatus = 3
@@ -138,8 +165,8 @@ func (m *MeasurementData) outgoingMeasurementTasks(c *Connection) {
 	/* Set latencyvalid to true ONLY for the packet with
 	   the spin edge */
 	} else {
-		m.hdrData.latencyValid = false
 		m.hdrData.latencyStatus = statusInvalid
+		m.hdrData.latencyValidEdge = false
 	}
 	m.generatingEdge = false
 
@@ -184,6 +211,8 @@ func (m *MeasurementData) setOutgoingLatencySpin(hdr *packetHeader){
 	if receivedMeasurement.latencySpin != m.lastRxLatencySpin {
 		m.latencyRxEdgeTime = time.Now()
 		m.generatingEdge = true
+		/* reset the loss bit */
+		m.hdrData.loss = false
 	}
 
 	/* Server echos back the latest LatencySpinBit seen */

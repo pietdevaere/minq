@@ -169,8 +169,9 @@ func NewConnection(trans Transport, role uint8, tls TlsConfig, handler Connectio
 
 	c.log = newConnectionLogger(&c)
 
-	c.congestion = newCongestionControllerIetf(&c)
-	//c.congestion = newCongestionControllerFixedWindow(&c, 20*kInitialMTU)
+	//c.congestion = newCongestionControllerIetf(&c)
+	//c.congestion = newCongestionControllerFixedWindow(&c, 60*kInitialMTU)
+	c.congestion = newCongestionControllerFixedRate(&c, 600000, 0)
 	//c.congestion = &CongestionControllerDummy{}
 	c.congestion.setLostPacketHandler(c.handleLostPacket)
 

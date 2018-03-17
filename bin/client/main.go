@@ -57,7 +57,7 @@ func (h *connHandler) StreamReadable(s *minq.Stream) {
 func readUDP(s *net.UDPConn) ([]byte, error) {
 	b := make([]byte, 8192)
 
-	s.SetReadDeadline(time.Now().Add(10*time.Millisecond))
+	s.SetReadDeadline(time.Now().Add(1*time.Millisecond))
 	n, _, err := s.ReadFromUDP(b)
 	if err != nil {
 		e, o := err.(net.Error)

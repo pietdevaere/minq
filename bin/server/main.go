@@ -349,7 +349,7 @@ func main() {
 
 		b := make([]byte, 8192)
 
-		usock.SetDeadline(time.Now().Add(10*time.Millisecond))
+		usock.SetDeadline(time.Now().Add(1*time.Millisecond))
 		n, addr, err := usock.ReadFromUDP(b)
 		if err != nil {
 			e, o := err.(net.Error)
