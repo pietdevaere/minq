@@ -1,8 +1,8 @@
-![A mink forming a Q](/minq.png)
+![A mink forming a Q](/pinq.png)
 
-minq -- A minimal QUIC stack
+pinq -- Piet's minimal QUIC stack
 ============================
-Minq is a minimal implementation of QUIC, as documented at
+Pinq is a minimal implementation of QUIC, as documented at
 https://quicwg.github.io/. Minq partly implements draft-05
 (it advertises -04 but it's actually more like the editor's copy)
 with TLS 1.3 draft-20 or draft-21.
